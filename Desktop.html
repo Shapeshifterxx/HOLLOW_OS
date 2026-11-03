@@ -1,0 +1,962 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hollow_OS</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #000;
+    color: white;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* =========================
+   LOCK SCREEN
+========================= */
+
+#lockScreen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 1;
+    transition: opacity .7s ease;
+}
+
+#lockScreen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#hollowLogo {
+    position: absolute;
+    top: 35px;
+    font-size: 15px;
+    letter-spacing: 7px;
+    font-weight: 300;
+    transition: opacity .5s ease;
+}
+
+/* CLOCK POSITION AND ANIMATION */
+
+#clockArea {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: auto;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: top 1s ease, transform 1s ease;
+}
+
+#clock {
+    font-size: clamp(75px, 15vw, 135px);
+    font-weight: 200;
+    letter-spacing: -5px;
+    transition:
+        font-size 1s ease,
+        letter-spacing 1s ease;
+}
+
+#date {
+    margin-top: 5px;
+    color: #777;
+    font-size: 13px;
+    letter-spacing: 3px;
+}
+
+/* CLOCK MOVES UP WHEN LOCK SCREEN ACTIVATES */
+
+#lockScreen.active #clockArea {
+    top: 95px;
+    transform: translate(-50%, 0);
+}
+
+#lockScreen.active #clock {
+    font-size: 45px;
+    letter-spacing: -2px;
+}
+
+#lockScreen.active #date {
+    display: none;
+}
+
+#lockScreen.active #hollowLogo {
+    opacity: 0;
+}
+
+/* PASSCODE */
+
+#passcode {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    padding: 14px;
+    border: none;
+    border-bottom: 1px solid #444;
+    outline: none;
+    background: transparent;
+    color: white;
+    text-align: center;
+    font-size: 20px;
+    letter-spacing: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .5s ease;
+}
+
+#passcode::placeholder {
+    color: #555;
+}
+
+#lockScreen.active #passcode {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#unlockHint {
+    position: absolute;
+    top: calc(50% + 45px);
+    color: #555;
+    font-size: 10px;
+    letter-spacing: 3px;
+    opacity: 0;
+    transition: opacity .5s ease;
+}
+
+#lockScreen.active #unlockHint {
+    opacity: 1;
+}
+
+#lockError {
+    position: absolute;
+    top: calc(50% + 85px);
+    color: #a66;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+
+#lockError.show {
+    opacity: 1;
+}
+
+/* =========================
+   DESKTOP
+========================= */
+
+#desktop {
+    position: fixed;
+    inset: 0;
+    background: #050505;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .7s ease;
+}
+
+#desktop.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#desktopTitle {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 6px;
+    color: #aaa;
+    white-space: nowrap;
+}
+
+/* =========================
+   TASKBAR
+========================= */
+
+#taskbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 15px;
+    background: #080808;
+    border-top: 1px solid #222;
+    z-index: 50;
+}
+
+.taskButton {
+    min-width: 38px;
+    height: 36px;
+    padding: 0 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #aaa;
+    font-size: 14px;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.taskButton:hover {
+    background: #181818;
+    border-color: #333;
+    color: white;
+}
+
+#launcherButton {
+    font-weight: bold;
+    font-size: 17px;
+}
+
+/* =========================
+   APP LAUNCHER
+========================= */
+
+#launcher {
+    position: fixed;
+    bottom: 65px;
+    left: 12px;
+    width: 230px;
+    padding: 15px;
+    background: #080808;
+    border: 1px solid #333;
+    display: none;
+    z-index: 60;
+}
+
+#launcher.open {
+    display: block;
+}
+
+.launcherTitle {
+    color: #666;
+    font-size: 10px;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+}
+
+.appButton {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #ddd;
+    text-align: left;
+    cursor: pointer;
+}
+
+.appButton:hover {
+    background: #181818;
+    border-color: #333;
+}
+
+/* =========================
+   WINDOWS
+========================= */
+
+.window {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(520px, 90vw);
+    height: min(370px, 75vh);
+    background: #080808;
+    border: 1px solid #333;
+    display: none;
+    flex-direction: column;
+    z-index: 30;
+}
+
+.window.open {
+    display: flex;
+}
+
+.window.maximized {
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    height: calc(100% - 55px);
+}
+
+.windowHeader {
+    height: 43px;
+    min-height: 43px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    border-bottom: 1px solid #292929;
+    color: #bbb;
+    font-size: 11px;
+    letter-spacing: 2px;
+}
+
+.windowControls {
+    display: flex;
+    gap: 5px;
+}
+
+.windowControls button {
+    width: 27px;
+    height: 25px;
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+}
+
+.windowControls button:hover {
+    background: #222;
+    color: white;
+}
+
+.windowContent {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* =========================
+   SETTINGS
+========================= */
+
+.sectionTitle {
+    color: #777;
+    font-size: 10px;
+    letter-spacing: 3px;
+    margin-bottom: 18px;
+}
+
+.settingRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 14px 0;
+    border-bottom: 1px solid #222;
+    font-size: 13px;
+}
+
+.settingDescription {
+    color: #666;
+    font-size: 11px;
+    margin-top: 5px;
+}
+
+/* TOGGLE */
+
+.toggle {
+    width: 38px;
+    height: 20px;
+    background: #292929;
+    border: 1px solid #444;
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.toggle::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    top: 3px;
+    left: 3px;
+    border-radius: 50%;
+    background: #888;
+    transition: .2s;
+}
+
+.toggle.on {
+    background: #ddd;
+}
+
+.toggle.on::after {
+    left: 20px;
+    background: #111;
+}
+
+/* SETTINGS INPUTS */
+
+.settingInput {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 11px;
+    background: #111;
+    border: 1px solid #333;
+    outline: none;
+    color: white;
+}
+
+.settingInput:focus {
+    border-color: #777;
+}
+
+.saveButton {
+    margin-top: 12px;
+    padding: 9px 15px;
+    background: #eee;
+    color: #111;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+#passcodeSettings {
+    display: none;
+}
+
+#passcodeSettings.visible {
+    display: block;
+}
+
+#settingsMessage {
+    color: #888;
+    font-size: 11px;
+    margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+     LOCK SCREEN
+========================= -->
+
+<div id="lockScreen">
+
+    <div id="hollowLogo">HOLLOW_OS</div>
+
+    <div id="clockArea">
+        <div id="clock">00:00</div>
+        <div id="date">LOADING DATE</div>
+    </div>
+
+    <input
+        id="passcode"
+        type="password"
+        placeholder="••••"
+        autocomplete="off"
+    >
+
+    <div id="unlockHint">PRESS ENTER TO UNLOCK</div>
+    <div id="lockError">INCORRECT PASSCODE</div>
+
+</div>
+
+
+<!-- =========================
+     DESKTOP
+========================= -->
+
+<div id="desktop">
+
+    <div id="desktopTitle">HOLLOW_OS</div>
+
+    <!-- APP LAUNCHER -->
+
+    <div id="launcher">
+
+        <div class="launcherTitle">APPLICATIONS</div>
+
+        <button class="appButton" onclick="openSettings()">
+            Settings
+        </button>
+
+    </div>
+
+
+    <!-- SETTINGS WINDOW -->
+
+    <div class="window" id="settingsWindow">
+
+        <div class="windowHeader">
+
+            <span>SETTINGS</span>
+
+            <div class="windowControls">
+
+                <button onclick="minimizeSettings()" title="Minimize">
+                    —
+                </button>
+
+                <button onclick="maximizeSettings()" title="Maximize">
+                    □
+                </button>
+
+                <button onclick="closeSettings()" title="Close">
+                    ×
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="windowContent">
+
+            <div class="sectionTitle">GENERAL</div>
+
+            <div class="settingRow">
+
+                <div>
+                    Keypad
+
+                    <div class="settingDescription">
+                        Require a passcode to unlock Hollow_OS
+                    </div>
+                </div>
+
+                <div
+                    class="toggle"
+                    id="keypadToggle"
+                    onclick="toggleKeypad()"
+                ></div>
+
+            </div>
+
+            <div id="passcodeSettings">
+
+                <input
+                    class="settingInput"
+                    id="newPasscode"
+                    type="password"
+                    placeholder="Enter a new passcode"
+                >
+
+                <input
+                    class="settingInput"
+                    id="confirmPasscode"
+                    type="password"
+                    placeholder="Confirm passcode"
+                >
+
+                <button
+                    class="saveButton"
+                    onclick="savePasscode()"
+                >
+                    SAVE PASSCODE
+                </button>
+
+                <div id="settingsMessage"></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- TASKBAR -->
+
+    <div id="taskbar">
+
+        <button
+            class="taskButton"
+            id="launcherButton"
+            title="App launcher (Z)"
+            onclick="toggleLauncher()"
+        >Z</button>
+
+        <button
+            class="taskButton"
+            title="Settings"
+            onclick="openSettings()"
+        >⚙</button>
+
+        <button
+            class="taskButton"
+            title="Lock"
+            onclick="lockDevice()"
+        >⌑</button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   CLOCK
+========================= */
+
+function updateClock() {
+
+    const now = new Date();
+
+    let hours = now.getHours();
+
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+
+    const suffix = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12 || 12;
+
+    document.getElementById("clock").textContent =
+        hours + ":" + minutes + " " + suffix;
+
+    document.getElementById("date").textContent =
+        now.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric"
+        }).toUpperCase();
+
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+
+/* =========================
+   ELEMENTS AND STARTUP
+========================= */
+
+const lockScreen = document.getElementById("lockScreen");
+
+const desktop = document.getElementById("desktop");
+
+const passcodeInput = document.getElementById("passcode");
+
+let lockActive = false;
+
+
+function hasPasscode() {
+
+    return (
+        localStorage.getItem("hollowKeypad") === "true" &&
+        !!localStorage.getItem("hollowPasscode")
+    );
+
+}
+
+
+function showDesktop() {
+
+    lockScreen.classList.add("hidden");
+
+    desktop.classList.add("active");
+
+    setTimeout(() => {
+        lockScreen.style.display = "none";
+    }, 700);
+
+    lockActive = false;
+
+}
+
+/* =========================
+   LOCK SCREEN BEHAVIOR
+========================= */
+
+function activateLockScreen() {
+
+    if (!hasPasscode()) {
+
+        showDesktop();
+
+        return;
+
+    }
+
+    if (lockActive) return;
+
+    lockActive = true;
+
+    lockScreen.classList.add("active");
+
+    setTimeout(() => {
+        passcodeInput.focus();
+    }, 500);
+
+}
+
+
+lockScreen.addEventListener("click", activateLockScreen);
+
+
+passcodeInput.addEventListener("click", event => {
+
+    event.stopPropagation();
+
+});
+
+
+passcodeInput.addEventListener("keydown", event => {
+
+    if (event.key === "Enter") {
+
+        unlockDevice();
+
+    }
+
+});
+
+
+function unlockDevice() {
+
+    if (!hasPasscode()) {
+
+        showDesktop();
+
+        return;
+
+    }
+
+    const savedPasscode =
+        localStorage.getItem("hollowPasscode");
+
+    if (passcodeInput.value !== savedPasscode) {
+
+        document.getElementById("lockError")
+            .classList.add("show");
+
+        passcodeInput.value = "";
+
+        passcodeInput.focus();
+
+        return;
+
+    }
+
+    document.getElementById("lockError")
+        .classList.remove("show");
+
+    showDesktop();
+
+}
+
+
+/* =========================
+   MANUAL LOCKING
+========================= */
+
+function lockDevice() {
+
+    closeSettings();
+
+    closeLauncher();
+
+    lockScreen.style.display = "flex";
+
+    lockScreen.classList.remove("hidden");
+
+    lockScreen.classList.remove("active");
+
+    desktop.classList.remove("active");
+
+    passcodeInput.value = "";
+
+    document.getElementById("lockError")
+        .classList.remove("show");
+
+    lockActive = false;
+
+}
+
+
+/* =========================
+   APP LAUNCHER
+========================= */
+
+const launcher = document.getElementById("launcher");
+
+
+function toggleLauncher() {
+
+    launcher.classList.toggle("open");
+
+}
+
+
+function closeLauncher() {
+
+    launcher.classList.remove("open");
+
+}
+
+
+/* Z KEY SHORTCUT */
+
+document.addEventListener("keydown", event => {
+
+    if (
+        event.key.toLowerCase() === "z" &&
+        !["INPUT", "TEXTAREA"].includes(
+            document.activeElement.tagName
+        )
+    ) {
+
+        if (desktop.classList.contains("active")) {
+
+            toggleLauncher();
+
+        }
+
+    }
+
+    if (event.key === "Escape") {
+
+        closeLauncher();
+
+    }
+
+});
+
+
+/* =========================
+   SETTINGS WINDOW
+========================= */
+
+const settingsWindow =
+    document.getElementById("settingsWindow");
+
+
+function openSettings() {
+
+    closeLauncher();
+
+    settingsWindow.classList.add("open");
+
+}
+
+
+function closeSettings() {
+
+    settingsWindow.classList.remove("open");
+
+    settingsWindow.classList.remove("maximized");
+
+}
+
+
+function minimizeSettings() {
+
+    settingsWindow.classList.remove("open");
+
+}
+
+
+function maximizeSettings() {
+
+    settingsWindow.classList.toggle("maximized");
+
+}
+
+
+/* =========================
+   KEYPAD SETTINGS
+========================= */
+
+let keypadEnabled =
+    localStorage.getItem("hollowKeypad") === "true";
+
+
+function updateKeypadUI() {
+
+    document.getElementById("keypadToggle")
+        .classList.toggle("on", keypadEnabled);
+
+    document.getElementById("passcodeSettings")
+        .classList.toggle("visible", keypadEnabled);
+
+}
+
+
+function toggleKeypad() {
+
+    keypadEnabled = !keypadEnabled;
+
+    localStorage.setItem("hollowKeypad", keypadEnabled);
+
+    if (!keypadEnabled) {
+
+        localStorage.removeItem("hollowPasscode");
+
+    }
+
+    updateKeypadUI();
+
+}
+
+
+function savePasscode() {
+
+    const newCode =
+        document.getElementById("newPasscode").value;
+
+    const confirmCode =
+        document.getElementById("confirmPasscode").value;
+
+    const message =
+        document.getElementById("settingsMessage");
+
+
+    if (!newCode) {
+
+        message.textContent = "Please enter a passcode.";
+
+        return;
+
+    }
+
+
+    if (newCode !== confirmCode) {
+
+        message.textContent = "Passcodes do not match.";
+
+        return;
+
+    }
+
+
+    localStorage.setItem("hollowPasscode", newCode);
+
+    document.getElementById("newPasscode").value = "";
+
+    document.getElementById("confirmPasscode").value = "";
+
+    message.textContent = "Passcode saved.";
+
+}
+
+
+updateKeypadUI();
+
+</script>
+
+</body>
+</html>
+
+
